@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 from core.detector import detect_attack
+from core.defense import apply_defense
 st.set_page_config(
     page_title="Agentic AI Red-Team Harness",
     page_icon="🛡️",
@@ -22,7 +23,8 @@ page = st.sidebar.radio(
     "Navigation",
     [
         "Dashboard",
-        "Attack Simulator"
+        "Attack Simulator",
+        "Security Policy"
     ]
 )
 
@@ -135,59 +137,113 @@ elif page == "Attack Simulator":
         height=120
     )
 
+
     st.divider()
 
     result = None
 
     if st.button("Run Attack"):
-        result = detect_attack(attack["payload"])
+
+        result = apply_defense(attack["payload"])
 
     if result is not None:
-        st.subheader("Detection Result")
+        st.subheader("Security Decision")
 
         if result["decision"] == "BLOCK":
-            st.error("🚨 ATTACK BLOCKED")
+            st.error("🚨 REQUEST BLOCKED")
         else:
             st.success("✅ REQUEST ALLOWED")
 
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.metric("Risk Score", result["risk_score"])
+            st.metric(
+                "Risk Score",
+                result["risk_score"]
+            )
 
         with col2:
-            st.metric("Severity", result["severity"])
+            st.metric(
+                "Severity",
+                result["severity"]
+            )
 
         with col3:
-            st.metric("Decision", result["decision"])
+            st.metric(
+                "Decision",
+                result["decision"]
+            )
 
-        st.write("### Detected Category")
+        st.write("### Category")
         st.write(result["category"])
 
-        st.write("### Detection Reasons")
+        st.write("### Security Action")
+        st.info(result["action"])
+
+        st.write("### Reasons")
 
         if result["reasons"]:
+
             for reason in result["reasons"]:
                 st.warning(reason)
+
         else:
-            st.success("No suspicious behavior detected.")
-
-        st.write("### Pattern Matches")
-
-        if result["injection_matches"]:
-            st.write(
-                "Prompt Injection:",
-                result["injection_matches"]
+            st.success(
+                "No suspicious behavior detected."
             )
 
-        if result["tool_matches"]:
-            st.write(
-                "Tool Abuse:",
-                result["tool_matches"]
-            )
+# =========================================================
+# SECURITY POLICY
+# =========================================================
 
-        if result["exfiltration_matches"]:
-            st.write(
-                "Data Exfiltration:",
-                result["exfiltration_matches"]
-            )
+elif page == "Security Policy":
+
+    st.title("Security Policy")
+
+    st.write(
+        "The application uses risk-based security "
+        "decisions to protect the simulated AI agent."
+    )
+
+    st.subheader("Risk Thresholds")
+
+    policy_data = {
+        "Risk Score": [
+            "0–29",
+            "30–59",
+            "60–79",
+            "80–100"
+        ],
+        "Severity": [
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+        ],
+        "Action": [
+            "ALLOW",
+            "BLOCK",
+            "BLOCK",
+            "BLOCK"
+        ]
+    }
+
+    import pandas as pd
+
+    policy_df = pd.DataFrame(policy_data)
+
+    st.table(policy_df)
+
+    st.subheader("Security Controls")
+
+    controls = [
+        "Input detection",
+        "Prompt injection detection",
+        "Tool abuse detection",
+        "Data exfiltration detection",
+        "Risk scoring",
+        "Request blocking"
+    ]
+
+    for control in controls:
+        st.write("✅", control)
