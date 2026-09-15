@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-
+from core.detector import detect_attack
 st.set_page_config(
     page_title="Agentic AI Red-Team Harness",
     page_icon="🛡️",
@@ -137,42 +137,57 @@ elif page == "Attack Simulator":
 
     st.divider()
 
-    if st.button(
-        "🚀 Run Attack",
-        use_container_width=True
-    ):
+    result = None
 
-        st.subheader("Attack Result")
+    if st.button("Run Attack"):
+        result = detect_attack(attack["payload"])
 
-        if attack["expected_action"] == "Block":
+    if result is not None:
+        st.subheader("Detection Result")
 
-            st.error("🚨 ATTACK SHOULD BE BLOCKED")
-
+        if result["decision"] == "BLOCK":
+            st.error("🚨 ATTACK BLOCKED")
         else:
-
-            st.success("✅ REQUEST SHOULD BE ALLOWED")
+            st.success("✅ REQUEST ALLOWED")
 
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            st.metric(
-                "Severity",
-                attack["severity"]
-            )
+            st.metric("Risk Score", result["risk_score"])
 
         with col2:
-            st.metric(
-                "Expected Action",
-                attack["expected_action"]
-            )
+            st.metric("Severity", result["severity"])
 
         with col3:
-            st.metric(
-                "Target Tool",
-                attack["tool"]
+            st.metric("Decision", result["decision"])
+
+        st.write("### Detected Category")
+        st.write(result["category"])
+
+        st.write("### Detection Reasons")
+
+        if result["reasons"]:
+            for reason in result["reasons"]:
+                st.warning(reason)
+        else:
+            st.success("No suspicious behavior detected.")
+
+        st.write("### Pattern Matches")
+
+        if result["injection_matches"]:
+            st.write(
+                "Prompt Injection:",
+                result["injection_matches"]
             )
 
-        st.info(
-            "This is currently a simulated test. "
-            "The actual detection engine will be implemented next."
-        )
+        if result["tool_matches"]:
+            st.write(
+                "Tool Abuse:",
+                result["tool_matches"]
+            )
+
+        if result["exfiltration_matches"]:
+            st.write(
+                "Data Exfiltration:",
+                result["exfiltration_matches"]
+            )
