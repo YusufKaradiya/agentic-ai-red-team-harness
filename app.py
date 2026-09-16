@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from core.defense import apply_defense
 from core.detector import detect_indirect_injection
+from core.permissions import check_tool_permission
 st.set_page_config(
     page_title="Agentic AI Red-Team Harness",
     page_icon="🛡️",
@@ -25,6 +26,7 @@ page = st.sidebar.radio(
         "Dashboard",
         "Attack Simulator",
         "Indirect Injection",
+        "Tool Sandbox",
         "Security Policy"
     ]
 )
@@ -330,6 +332,93 @@ elif page == "Indirect Injection":
                 "No known malicious instruction pattern "
                 "was detected in this document."
             )
+elif page == "Tool Sandbox":
+
+    st.title("🧰 Tool Permission Sandbox")
+
+    st.write(
+        "This module simulates tool authorization for "
+        "a tool-enabled AI agent."
+    )
+
+    st.warning(
+        "All tools are simulated. No real database, "
+        "email service or external API is used."
+    )
+
+    st.divider()
+
+    tools = [
+        "Calculator",
+        "File Reader",
+        "Customer Database",
+        "Email Sender"
+    ]
+
+    selected_tool = st.selectbox(
+        "Select Tool",
+        tools
+    )
+
+    st.divider()
+
+    st.subheader("Permission Check")
+
+    permission = check_tool_permission(
+        selected_tool
+    )
+
+    if permission["allowed"]:
+
+        st.success(
+            "✅ TOOL AUTHORIZED"
+        )
+
+    else:
+
+        st.error(
+            "🚨 TOOL ACCESS BLOCKED"
+        )
+
+    st.write(
+        f"**Tool:** {selected_tool}"
+    )
+
+    st.write(
+        f"**Reason:** {permission['reason']}"
+    )
+
+    st.divider()
+
+    st.subheader("Tool Permission Matrix")
+
+    permission_data = []
+
+    for tool in tools:
+
+        result = check_tool_permission(tool)
+
+        permission_data.append(
+            {
+                "Tool": tool,
+                "Permission": (
+                    "ALLOW"
+                    if result["allowed"]
+                    else "BLOCK"
+                ),
+                "Reason": result["reason"]
+            }
+        )
+
+    permission_df = pd.DataFrame(
+        permission_data
+    )
+
+    st.dataframe(
+        permission_df,
+        use_container_width=True,
+        hide_index=True
+    )
 # =========================================================
 # SECURITY POLICY
 # =========================================================
