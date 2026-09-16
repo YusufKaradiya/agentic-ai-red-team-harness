@@ -8,6 +8,16 @@ from core.logger import (
     get_security_events,
     log_security_event,
 )
+from core.evaluator import (
+    evaluate_attack_corpus,
+    calculate_metrics
+)
+
+from core.logger import (
+    log_security_event,
+    get_security_events,
+    clear_security_events
+)
 from core.permissions import check_tool_permission
 
 st.set_page_config(
@@ -45,48 +55,296 @@ page = st.sidebar.radio(
 # =========================
 
 if page == "Dashboard":
-    st.title("🛡️ Agentic AI Red-Team Harness")
 
-    st.subheader(
-        "Prompt Injection, Tool Abuse & Data Exfiltration Testing"
+    st.title("🛡️ Agentic AI Red-Team Evaluation Dashboard")
+
+    st.write(
+        "Security evaluation dashboard for prompt injection, "
+        "tool abuse and synthetic data exfiltration testing."
     )
+
+    st.divider()
+
+    # -------------------------
+    # Evaluation
+    # -------------------------
+
+    results_df = evaluate_attack_corpus(attacks)
+
+    metrics = calculate_metrics(results_df)
+
+    # -------------------------
+    # Main Metrics
+    # -------------------------
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("Total Attacks", len(attacks))
+        st.metric(
+            "Total Test Cases",
+            metrics["total_cases"]
+        )
 
     with col2:
         st.metric(
-            "Direct Injection",
-            len(
-                attacks[
-                    attacks["category"] == "Direct Prompt Injection"
-                ]
-            ),
+            "Attack Cases",
+            metrics["attack_cases"]
         )
 
     with col3:
         st.metric(
-            "Tool Abuse",
-            len(attacks[attacks["category"] == "Tool Abuse"]),
+            "Benign Cases",
+            metrics["benign_cases"]
         )
 
     with col4:
         st.metric(
-            "Data Exfiltration",
-            len(
-                attacks[
-                    attacks["category"] == "Data Exfiltration"
-                ]
-            ),
+            "Correct Decisions",
+            metrics["correct"]
         )
 
     st.divider()
 
-    st.subheader("Attack Corpus")
+    # -------------------------
+    # Security Metrics
+    # -------------------------
 
-    st.dataframe(attacks, use_container_width=True)
+    st.subheader("📈 Security Metrics")
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        st.metric(
+            "Detection Rate",
+            f"{metrics['detection_rate']:.1f}%"
+        )
+
+    with col2:
+        st.metric(
+            "Attack Success Rate",
+            f"{metrics['attack_success_rate']:.1f}%"
+        )
+
+    with col3:
+        st.metric(
+            "False Positives",
+            metrics["false_positives"]
+        )
+
+    with col4:
+        st.metric(
+            "False Negatives",
+            metrics["false_negatives"]
+        )
+
+    st.divider()
+
+    # -------------------------
+    # Risk Score
+    # -------------------------
+
+    st.subheader("⚠️ Risk Analysis")
+
+    st.metric(
+        "Average Risk Score",
+        f"{metrics['average_risk_score']:.1f}"
+    )
+
+    st.divider()
+
+    # -------------------------
+    # Category Analysis
+    # -------------------------
+
+    st.subheader("🎯 Category-wise Results")
+
+    category_summary = (
+        results_df
+        .groupby("category")
+        .agg(
+            Cases=("id", "count"),
+            Correct=("correct", "sum"),
+            Average_Risk=("risk_score", "mean")
+        )
+        .reset_index()
+    )
+
+    category_summary["Detection_Rate"] = (
+        category_summary["Correct"]
+        /
+        category_summary["Cases"]
+        *
+        100
+    )
+
+    category_summary["Detection_Rate"] = (
+        category_summary["Detection_Rate"]
+        .round(1)
+    )
+
+    category_summary["Average_Risk"] = (
+        category_summary["Average_Risk"]
+        .round(1)
+    )
+
+    st.dataframe(
+        category_summary,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.divider()
+
+    # -------------------------
+    # Result Distribution
+    # -------------------------
+
+    st.subheader("📊 Evaluation Result Distribution")
+
+    result_counts = (
+        results_df["result_type"]
+        .value_counts()
+        .reset_index()
+    )
+
+    result_counts.columns = [
+        "Result",
+        "Count"
+    ]
+
+    st.bar_chart(
+        result_counts.set_index("Result")
+    )
+
+    st.divider()
+
+    # -------------------------
+    # Decision Distribution
+    # -------------------------
+
+    st.subheader("🔐 Detector Decision Distribution")
+
+    decision_counts = (
+        results_df["actual"]
+        .value_counts()
+        .reset_index()
+    )
+
+    decision_counts.columns = [
+        "Decision",
+        "Count"
+    ]
+
+    st.bar_chart(
+        decision_counts.set_index("Decision")
+    )
+
+    st.divider()
+
+    # -------------------------
+    # Severity Analysis
+    # -------------------------
+
+    st.subheader("🚨 Severity-wise Analysis")
+
+    severity_summary = (
+        results_df
+        .groupby("severity_expected")
+        .agg(
+            Cases=("id", "count"),
+            Average_Risk=("risk_score", "mean"),
+            Correct=("correct", "sum")
+        )
+        .reset_index()
+    )
+
+    severity_summary["Average_Risk"] = (
+        severity_summary["Average_Risk"]
+        .round(1)
+    )
+
+    st.dataframe(
+        severity_summary,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.divider()
+
+    # -------------------------
+    # False Positives
+    # -------------------------
+
+    st.subheader("❗ False Positive Analysis")
+
+    false_positive_df = results_df[
+        results_df["result_type"] == "False Positive"
+    ]
+
+    if false_positive_df.empty:
+
+        st.success(
+            "No false positives detected in the current corpus."
+        )
+
+    else:
+
+        st.warning(
+            f"{len(false_positive_df)} benign request(s) "
+            "were incorrectly blocked."
+        )
+
+        st.dataframe(
+            false_positive_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+    st.divider()
+
+    # -------------------------
+    # False Negatives
+    # -------------------------
+
+    st.subheader("🚨 False Negative Analysis")
+
+    false_negative_df = results_df[
+        results_df["result_type"] == "False Negative"
+    ]
+
+    if false_negative_df.empty:
+
+        st.success(
+            "No attack cases bypassed the current detector "
+            "in this evaluation corpus."
+        )
+
+    else:
+
+        st.error(
+            f"{len(false_negative_df)} attack(s) "
+            "were incorrectly allowed."
+        )
+
+        st.dataframe(
+            false_negative_df,
+            use_container_width=True,
+            hide_index=True
+        )
+
+    st.divider()
+
+    # -------------------------
+    # Full Evaluation
+    # -------------------------
+
+    st.subheader("🧪 Full Evaluation Results")
+
+    st.dataframe(
+        results_df,
+        use_container_width=True,
+        hide_index=True
+    )
 
 
 # =========================
