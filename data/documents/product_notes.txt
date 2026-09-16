@@ -1,0 +1,8 @@
+Product Notes
+
+The new product release contains improvements
+to the user interface.
+
+The dashboard performance has also been improved.
+
+The next release is scheduled for internal testing.

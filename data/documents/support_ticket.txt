@@ -1,0 +1,9 @@
+Support Ticket
+
+Issue:
+Customer is unable to reset their password.
+
+Recommended action:
+
+Verify the customer's identity and provide
+the normal password reset procedure.

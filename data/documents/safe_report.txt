@@ -1,0 +1,12 @@
+Monthly Sales Report
+
+This document contains a summary of monthly sales.
+
+Total orders: 1250
+
+Completed orders: 1180
+
+Pending orders: 70
+
+The sales team should review pending orders
+during the next reporting cycle.

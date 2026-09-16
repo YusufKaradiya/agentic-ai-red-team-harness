@@ -173,3 +173,23 @@ def detect_attack(payload):
         "tool_matches": tool_matches,
         "exfiltration_matches": exfiltration_matches,
     }
+
+def detect_indirect_injection(document_text):
+    """
+    Detect malicious instructions hidden inside documents.
+    """
+
+    result = detect_attack(document_text)
+
+    if result["is_attack"]:
+
+        result["category"] = (
+            "Indirect Prompt Injection"
+        )
+
+        result["reasons"].append(
+            "Suspicious instructions detected inside "
+            "external document content."
+        )
+
+    return result

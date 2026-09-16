@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-from core.detector import detect_attack
 from core.defense import apply_defense
+from core.detector import detect_indirect_injection
 st.set_page_config(
     page_title="Agentic AI Red-Team Harness",
     page_icon="🛡️",
@@ -24,6 +24,7 @@ page = st.sidebar.radio(
     [
         "Dashboard",
         "Attack Simulator",
+        "Indirect Injection",
         "Security Policy"
     ]
 )
@@ -191,7 +192,144 @@ elif page == "Attack Simulator":
             st.success(
                 "No suspicious behavior detected."
             )
+elif page == "Indirect Injection":
 
+    st.title("📄 Indirect Prompt Injection")
+
+    st.write(
+        "This module tests whether malicious instructions "
+        "hidden inside external documents can be detected."
+    )
+
+    st.divider()
+
+    document_folder = "data/documents"
+
+    documents = [
+        "safe_report.txt",
+        "malicious_report.txt",
+        "customer_notes.txt",
+        "support_ticket.txt",
+        "product_notes.txt"
+    ]
+
+    selected_document = st.selectbox(
+        "Select Document",
+        documents
+    )
+
+    document_path = (
+        f"{document_folder}/{selected_document}"
+    )
+
+    with open(
+        document_path,
+        "r",
+        encoding="utf-8"
+    ) as file:
+
+        document_text = file.read()
+
+    st.subheader("Document Content")
+
+    st.code(
+        document_text,
+        language="text"
+    )
+
+    st.divider()
+
+    if st.button(
+        "🔍 Scan Document",
+        use_container_width=True
+    ):
+
+        result = detect_indirect_injection(
+            document_text
+        )
+
+        st.subheader("Security Result")
+
+        if result["decision"] == "BLOCK":
+
+            st.error(
+                "🚨 MALICIOUS DOCUMENT CONTENT DETECTED"
+            )
+
+        else:
+
+            st.success(
+                "✅ DOCUMENT CONTENT APPEARS SAFE"
+            )
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+
+            st.metric(
+                "Risk Score",
+                result["risk_score"]
+            )
+
+        with col2:
+
+            st.metric(
+                "Severity",
+                result["severity"]
+            )
+
+        with col3:
+
+            st.metric(
+                "Decision",
+                result["decision"]
+            )
+
+        st.divider()
+
+        st.subheader("Detected Category")
+
+        st.info(
+            result["category"]
+        )
+
+        st.subheader("Detection Reasons")
+
+        if result["reasons"]:
+
+            for reason in result["reasons"]:
+
+                st.warning(
+                    f"⚠️ {reason}"
+                )
+
+        else:
+
+            st.success(
+                "No suspicious instructions detected."
+            )
+
+        st.divider()
+
+        st.subheader(
+            "Security Interpretation"
+        )
+
+        if result["decision"] == "BLOCK":
+
+            st.write(
+                "The document contains instructions that "
+                "appear to manipulate the AI agent or request "
+                "sensitive information. The content should "
+                "not be trusted as an instruction source."
+            )
+
+        else:
+
+            st.write(
+                "No known malicious instruction pattern "
+                "was detected in this document."
+            )
 # =========================================================
 # SECURITY POLICY
 # =========================================================
