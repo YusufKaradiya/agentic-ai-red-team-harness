@@ -3,6 +3,7 @@ import pandas as pd
 from core.defense import apply_defense
 from core.detector import detect_indirect_injection
 from core.permissions import check_tool_permission
+from core.leakage_guard import detect_sensitive_data
 st.set_page_config(
     page_title="Agentic AI Red-Team Harness",
     page_icon="🛡️",
@@ -27,6 +28,7 @@ page = st.sidebar.radio(
         "Attack Simulator",
         "Indirect Injection",
         "Tool Sandbox",
+        "Output Guard",
         "Security Policy"
     ]
 )
@@ -419,6 +421,125 @@ elif page == "Tool Sandbox":
         use_container_width=True,
         hide_index=True
     )
+elif page == "Output Guard":
+
+    st.title("🔒 Sensitive Data Output Guard")
+
+    st.write(
+        "This module checks AI or tool output for "
+        "synthetic sensitive information before "
+        "the response is returned to the user."
+    )
+
+    st.warning(
+        "Only synthetic test data is used in this prototype."
+    )
+
+    st.divider()
+
+    st.subheader("Test Output")
+
+    output_text = st.text_area(
+        "Enter simulated AI/tool output",
+        height=180,
+        placeholder=(
+            "Example: The API key is "
+            "SYNTHETIC_API_KEY_12345"
+        )
+    )
+
+    if st.button(
+        "🔍 Scan Output",
+        use_container_width=True
+    ):
+
+        if not output_text.strip():
+
+            st.warning(
+                "Please enter some output to scan."
+            )
+
+        else:
+
+            result = detect_sensitive_data(
+                output_text
+            )
+
+            st.divider()
+
+            st.subheader("Security Result")
+
+            if result["leak_detected"]:
+
+                st.error(
+                    "🚨 SENSITIVE DATA LEAK DETECTED"
+                )
+
+            else:
+
+                st.success(
+                    "✅ NO SENSITIVE DATA DETECTED"
+                )
+
+            col1, col2, col3 = st.columns(3)
+
+            with col1:
+
+                st.metric(
+                    "Leak Detected",
+                    "YES"
+                    if result["leak_detected"]
+                    else "NO"
+                )
+
+            with col2:
+
+                st.metric(
+                    "Risk Score",
+                    result["risk_score"]
+                )
+
+            with col3:
+
+                st.metric(
+                    "Decision",
+                    result["decision"]
+                )
+
+            st.divider()
+
+            st.subheader("Detection Findings")
+
+            if result["findings"]:
+
+                for finding in result["findings"]:
+
+                    st.warning(
+                        f"⚠️ {finding}"
+                    )
+
+            else:
+
+                st.success(
+                    "No sensitive information was found."
+                )
+
+            st.divider()
+
+            st.subheader("Output Handling")
+
+            if result["decision"] == "BLOCK":
+
+                st.error(
+                    "The output should be blocked and "
+                    "must not be returned to the user."
+                )
+
+            else:
+
+                st.success(
+                    "The output can pass the output guard."
+                )
 # =========================================================
 # SECURITY POLICY
 # =========================================================
