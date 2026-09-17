@@ -21,6 +21,10 @@ from core.evaluator import (
     calculate_system_metrics
     
 )
+from core.mutation import (
+    evaluate_mutations,
+    calculate_residual_risk
+)
 from core.permissions import check_tool_permission
 
 st.set_page_config(
@@ -49,6 +53,7 @@ page = st.sidebar.radio(
         "Output Guard",
         "Audit Logs",
         "Baseline Comparison",
+        "Residual Risk",
         "Security Policy",
     ],
 )
@@ -349,7 +354,37 @@ if page == "Dashboard":
         use_container_width=True,
         hide_index=True
     )
+if "mutation_results" in st.session_state:
 
+    residual_risk = st.session_state[
+        "residual_risk"
+    ]
+
+    st.divider()
+
+    st.subheader(
+        "🔬 Latest Residual Risk Test"
+    )
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric(
+            "Mutation Attacks",
+            residual_risk["total_attacks"]
+        )
+
+    with col2:
+        st.metric(
+            "Bypasses",
+            residual_risk["bypasses"]
+        )
+
+    with col3:
+        st.metric(
+            "Bypass Rate",
+            f"{residual_risk['bypass_rate']:.1f}%"
+        )
 
 # =========================
 # ATTACK SIMULATOR
@@ -1192,7 +1227,275 @@ elif page == "Baseline Comparison":
             of the synthetic corpus and rule-based detector.
             """
         )
+elif page == "Residual Risk":
 
+    st.title("🔬 Residual Risk & Adversarial Testing")
+
+    st.write(
+        "This module evaluates whether the current security "
+        "detector remains effective against unseen, paraphrased "
+        "and obfuscated synthetic attacks."
+    )
+
+    st.warning(
+        "These tests are synthetic research cases. "
+        "They are not executed against real systems."
+    )
+
+    st.divider()
+
+    # -------------------------
+    # Load mutation corpus
+    # -------------------------
+
+    mutations = pd.read_csv(
+        "data/mutations.csv"
+    )
+
+    st.subheader(
+        "🧪 Adversarial Test Corpus"
+    )
+
+    st.write(
+        f"Total mutation cases: "
+        f"**{len(mutations)}**"
+    )
+
+    st.dataframe(
+        mutations,
+        use_container_width=True,
+        hide_index=True
+    )
+
+    st.divider()
+
+    # -------------------------
+    # Run experiment
+    # -------------------------
+
+    if st.button(
+        "🚀 Run Residual Risk Test",
+        use_container_width=True
+    ):
+
+        mutation_results = (
+            evaluate_mutations(
+                mutations
+            )
+        )
+
+        residual_risk = (
+            calculate_residual_risk(
+                mutation_results
+            )
+        )
+
+        st.session_state[
+            "mutation_results"
+        ] = mutation_results
+
+        st.session_state[
+            "residual_risk"
+        ] = residual_risk
+
+        st.success(
+            "Adversarial mutation testing completed."
+        )
+
+    # -------------------------
+    # Results
+    # -------------------------
+
+    if (
+        "mutation_results"
+        in st.session_state
+    ):
+
+        results = st.session_state[
+            "mutation_results"
+        ]
+
+        risk = st.session_state[
+            "residual_risk"
+        ]
+
+        st.divider()
+
+        st.subheader(
+            "📊 Residual Risk Summary"
+        )
+
+        col1, col2, col3 = st.columns(3)
+
+        with col1:
+            st.metric(
+                "Malicious Tests",
+                risk["total_attacks"]
+            )
+
+        with col2:
+            st.metric(
+                "Bypasses",
+                risk["bypasses"]
+            )
+
+        with col3:
+            st.metric(
+                "Bypass Rate",
+                f"{risk['bypass_rate']:.1f}%"
+            )
+
+        st.divider()
+
+        # -------------------------
+        # Result distribution
+        # -------------------------
+
+        st.subheader(
+            "🎯 Adversarial Test Results"
+        )
+
+        result_counts = (
+            results["result"]
+            .value_counts()
+            .reset_index()
+        )
+
+        result_counts.columns = [
+            "Result",
+            "Count"
+        ]
+
+        st.bar_chart(
+            result_counts.set_index(
+                "Result"
+            )
+        )
+
+        st.divider()
+
+        # -------------------------
+        # Mutation analysis
+        # -------------------------
+
+        st.subheader(
+            "🧬 Mutation Type Analysis"
+        )
+
+        mutation_summary = (
+            results
+            .groupby("mutation_type")
+            .agg(
+                Cases=("id", "count")
+            )
+            .reset_index()
+        )
+
+        st.dataframe(
+            mutation_summary,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.divider()
+
+        # -------------------------
+        # Bypass cases
+        # -------------------------
+
+        st.subheader(
+            "🚨 Detected Bypass Cases"
+        )
+
+        bypasses = results[
+            results["result"] == "Bypass"
+        ]
+
+        if bypasses.empty:
+
+            st.success(
+                "No bypasses were observed "
+                "in the current mutation corpus."
+            )
+
+        else:
+
+            st.error(
+                f"{len(bypasses)} malicious "
+                "case(s) bypassed the detector."
+            )
+
+            st.dataframe(
+                bypasses[
+                    [
+                        "id",
+                        "base_category",
+                        "mutation_type",
+                        "expected",
+                        "actual",
+                        "risk_score",
+                        "severity"
+                    ]
+                ],
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.write(
+                "The bypass cases represent residual risk "
+                "because the current detector did not block "
+                "these malicious inputs."
+            )
+
+        st.divider()
+
+        # -------------------------
+        # False positives
+        # -------------------------
+
+        st.subheader(
+            "⚠️ False Positive Cases"
+        )
+
+        false_positives = results[
+            results["result"]
+            == "False Positive"
+        ]
+
+        if false_positives.empty:
+
+            st.success(
+                "No false positives were observed."
+            )
+
+        else:
+
+            st.warning(
+                f"{len(false_positives)} benign "
+                "case(s) were incorrectly blocked."
+            )
+
+            st.dataframe(
+                false_positives,
+                use_container_width=True,
+                hide_index=True
+            )
+
+        st.divider()
+
+        # -------------------------
+        # Full results
+        # -------------------------
+
+        st.subheader(
+            "🔍 Full Adversarial Results"
+        )
+
+        st.dataframe(
+            results,
+            use_container_width=True,
+            hide_index=True
+        )
 # =========================
 # SECURITY POLICY
 # =========================
