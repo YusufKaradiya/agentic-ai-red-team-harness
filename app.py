@@ -8,15 +8,18 @@ from core.logger import (
     get_security_events,
     log_security_event,
 )
-from core.evaluator import (
-    evaluate_attack_corpus,
-    calculate_metrics
-)
 
 from core.logger import (
     log_security_event,
     get_security_events,
     clear_security_events
+)
+from core.evaluator import (
+    evaluate_attack_corpus,
+    calculate_metrics,
+    compare_baseline_proposed,
+    calculate_system_metrics
+    
 )
 from core.permissions import check_tool_permission
 
@@ -45,6 +48,7 @@ page = st.sidebar.radio(
         "Tool Sandbox",
         "Output Guard",
         "Audit Logs",
+        "Baseline Comparison",
         "Security Policy",
     ],
 )
@@ -954,6 +958,240 @@ elif page == "Audit Logs":
             )
 
             st.rerun()
+
+elif page == "Baseline Comparison":
+
+    st.title("🧪 Baseline vs Proposed System")
+
+    st.write(
+        "Both systems are evaluated using the same synthetic "
+        "attack corpus."
+    )
+
+    st.warning(
+        "Baseline is intentionally unprotected and is used only "
+        "as a research comparison reference."
+    )
+
+    st.divider()
+
+    # -------------------------
+    # Run experiment
+    # -------------------------
+
+    if st.button(
+        "🚀 Run Baseline Comparison",
+        use_container_width=True
+    ):
+
+        comparison_results = (
+            compare_baseline_proposed(
+                attacks
+            )
+        )
+
+        st.session_state[
+            "comparison_results"
+        ] = comparison_results
+
+        st.success(
+            "Baseline and proposed systems were evaluated "
+            "using the same test corpus."
+        )
+
+    # -------------------------
+    # Show results
+    # -------------------------
+
+    if "comparison_results" in st.session_state:
+
+        comparison_results = (
+            st.session_state[
+                "comparison_results"
+            ]
+        )
+
+        baseline_metrics = (
+            calculate_system_metrics(
+                comparison_results,
+                "baseline"
+            )
+        )
+
+        proposed_metrics = (
+            calculate_system_metrics(
+                comparison_results,
+                "proposed"
+            )
+        )
+
+        st.subheader("📊 System Metrics")
+
+        comparison_data = pd.DataFrame({
+            "Metric": [
+                "Total Cases",
+                "Attack Cases",
+                "Benign Cases",
+                "Detection Rate",
+                "Attack Success Rate",
+                "False Positive Rate",
+                "False Positives",
+                "False Negatives",
+                "Average Latency (ms)"
+            ],
+
+            "Baseline": [
+                baseline_metrics["total"],
+                baseline_metrics["attacks"],
+                baseline_metrics["benign"],
+                f"{baseline_metrics['detection_rate']:.1f}%",
+                f"{baseline_metrics['attack_success_rate']:.1f}%",
+                f"{baseline_metrics['false_positive_rate']:.1f}%",
+                baseline_metrics["false_positives"],
+                baseline_metrics["false_negatives"],
+                f"{baseline_metrics['average_latency_ms']:.3f}"
+            ],
+
+            "Proposed": [
+                proposed_metrics["total"],
+                proposed_metrics["attacks"],
+                proposed_metrics["benign"],
+                f"{proposed_metrics['detection_rate']:.1f}%",
+                f"{proposed_metrics['attack_success_rate']:.1f}%",
+                f"{proposed_metrics['false_positive_rate']:.1f}%",
+                proposed_metrics["false_positives"],
+                proposed_metrics["false_negatives"],
+                f"{proposed_metrics['average_latency_ms']:.3f}"
+            ]
+        })
+
+        st.dataframe(
+            comparison_data,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.divider()
+
+        st.subheader("🎯 Detection Rate")
+
+        detection_chart = pd.DataFrame({
+            "System": [
+                "Baseline",
+                "Proposed"
+            ],
+            "Detection Rate": [
+                baseline_metrics[
+                    "detection_rate"
+                ],
+                proposed_metrics[
+                    "detection_rate"
+                ]
+            ]
+        })
+
+        st.bar_chart(
+            detection_chart.set_index("System")
+        )
+
+        st.divider()
+
+        st.subheader("🛡️ Attack Success Rate")
+
+        success_chart = pd.DataFrame({
+            "System": [
+                "Baseline",
+                "Proposed"
+            ],
+            "Attack Success Rate": [
+                baseline_metrics[
+                    "attack_success_rate"
+                ],
+                proposed_metrics[
+                    "attack_success_rate"
+                ]
+            ]
+        })
+
+        st.bar_chart(
+            success_chart.set_index("System")
+        )
+
+        st.divider()
+
+        st.subheader("⚠️ False Positive Rate")
+
+        fp_chart = pd.DataFrame({
+            "System": [
+                "Baseline",
+                "Proposed"
+            ],
+            "False Positive Rate": [
+                baseline_metrics[
+                    "false_positive_rate"
+                ],
+                proposed_metrics[
+                    "false_positive_rate"
+                ]
+            ]
+        })
+
+        st.bar_chart(
+            fp_chart.set_index("System")
+        )
+
+        st.divider()
+
+        st.subheader("⏱️ Average Latency")
+
+        latency_chart = pd.DataFrame({
+            "System": [
+                "Baseline",
+                "Proposed"
+            ],
+            "Average Latency (ms)": [
+                baseline_metrics[
+                    "average_latency_ms"
+                ],
+                proposed_metrics[
+                    "average_latency_ms"
+                ]
+            ]
+        })
+
+        st.bar_chart(
+            latency_chart.set_index("System")
+        )
+
+        st.divider()
+
+        st.subheader("🔍 Case-by-Case Comparison")
+
+        st.dataframe(
+            comparison_results,
+            use_container_width=True,
+            hide_index=True
+        )
+
+        st.divider()
+
+        st.subheader("🧠 Research Interpretation")
+
+        st.write(
+            """
+            The baseline represents an agent without the proposed
+            security controls. The proposed system introduces layered
+            input detection, risk-based blocking and other security
+            controls implemented in the harness.
+
+            Both systems receive the same synthetic test corpus.
+            Differences in security outcomes can therefore be examined
+            as part of the controlled experiment.
+
+            The results should be interpreted within the limitations
+            of the synthetic corpus and rule-based detector.
+            """
+        )
 
 # =========================
 # SECURITY POLICY
