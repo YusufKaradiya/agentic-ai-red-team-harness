@@ -43,3 +43,94 @@ The project will not interact with real customer data, production systems, real 
 7. Compare an unprotected baseline agent with the proposed defended workflow.
 
 8. Produce a residual-risk report showing which threats remain after applying the defensive controls.
+# Agentic AI Red-Team Harness
+
+## Project Overview
+
+A lightweight Streamlit-based security testing harness for evaluating
+prompt injection, tool abuse and synthetic sensitive-data leakage
+in a simulated tool-enabled AI agent.
+
+## Key Features
+
+- Direct prompt injection detection
+- Indirect prompt injection detection
+- Tool permission sandbox
+- Sensitive-data leakage detection
+- Audit logging
+- Security evaluation dashboard
+- Baseline comparison
+- Attack mutation testing
+- Residual risk analysis
+- Automated tests
+- Docker deployment
+- CI validation
+- Dependency security scanning
+
+## Technology Stack
+
+- Python
+- Streamlit
+- Pandas
+- SQLite
+- Pytest
+- Docker
+- GitHub Actions
+- pip-audit
+
+## Installation
+
+Create virtual environment:
+
+python -m venv venv
+
+Activate on Windows:
+
+venv\Scripts\activate
+
+Install dependencies:
+
+pip install -r requirements.txt
+
+## Run Application
+
+streamlit run app.py
+
+Open:
+
+http://localhost:8501
+
+## Run Tests
+
+pytest -q
+
+## Run Health Check
+
+python health_check.py
+
+## Security Audit
+
+pip-audit
+
+## Docker
+
+Build:
+
+docker build -t agentic-ai-red-team-harness .
+
+Run:
+
+docker run --rm -p 8501:8501 agentic-ai-red-team-harness
+
+## Data Safety
+
+The project uses synthetic/mock data only.
+
+No real customer records, credentials, API keys, databases or email
+services are connected.
+
+## Limitations
+
+The detection engine is lightweight and primarily rule-based.
+It should be considered a prototype security evaluation harness,
+not a production-grade security gateway.
