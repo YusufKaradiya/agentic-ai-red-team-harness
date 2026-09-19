@@ -3,6 +3,7 @@ import streamlit as st
 from core.defense import apply_defense
 from core.detector import detect_indirect_injection
 from core.leakage_guard import detect_sensitive_data
+from agent.agent import AgentSimulator
 from core.logger import (
     clear_security_events,
     get_security_events,
@@ -54,6 +55,7 @@ page = st.sidebar.radio(
         "Audit Logs",
         "Baseline Comparison",
         "Residual Risk",
+        "Agent Simulator",
         "Security Policy",
     ],
 )
@@ -1496,6 +1498,88 @@ elif page == "Residual Risk":
             use_container_width=True,
             hide_index=True
         )
+elif page == "Agent Simulator":
+
+    st.title("🤖 Agent Simulator")
+
+    st.write(
+        "Simulated tool-enabled AI agent with "
+        "security controls."
+    )
+
+    user_input = st.text_area(
+        "Enter user request",
+        placeholder=(
+            "Example: Calculate 25 multiplied by 4."
+        )
+    )
+
+    if st.button("Run Agent"):
+
+        if not user_input.strip():
+
+            st.warning("Please enter a request.")
+
+        else:
+
+            agent = AgentSimulator()
+
+            result = agent.run(user_input)
+
+            st.subheader("Security Decision")
+
+            st.write(
+                result["decision"]
+            )
+
+            st.metric(
+                "Risk Score",
+                result["risk_score"]
+            )
+
+            st.write(
+                "Category:",
+                result["category"]
+            )
+
+            st.subheader("Agent Plan")
+
+            st.write(
+                "Selected Tool:",
+                result["selected_tool"]
+            )
+
+            st.write(
+                "Tool Executed:",
+                result["tool_executed"]
+            )
+
+            st.subheader("Output Security")
+
+            st.write(
+                "Leakage Detected:",
+                result["leakage_detected"]
+            )
+
+            st.write(
+                "Output Blocked:",
+                result["output_blocked"]
+            )
+
+            st.subheader("Final Response")
+
+            st.info(
+                result["final_response"]
+            )
+
+            st.subheader("Execution Trace")
+
+            for event in result["events"]:
+
+                st.write(
+                    "→",
+                    event
+                )
 # =========================
 # SECURITY POLICY
 # =========================

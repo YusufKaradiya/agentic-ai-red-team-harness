@@ -387,3 +387,16 @@ def calculate_system_metrics(
         "accuracy": accuracy,
         "average_latency_ms": average_latency
     }
+def calculate_task_utility(results_df):
+    benign = results_df[
+        results_df["expected"] == "ALLOW"
+    ]
+
+    if len(benign) == 0:
+        return 0
+
+    correctly_allowed = len(
+        benign[benign["actual"] == "ALLOW"]
+    )
+
+    return (correctly_allowed / len(benign)) * 100
